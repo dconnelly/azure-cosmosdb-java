@@ -23,9 +23,8 @@
 
 package com.microsoft.azure.cosmosdb;
 
-import java.io.IOException;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.cosmosdb.internal.Constants;
 
 /**
@@ -63,16 +62,16 @@ public class Document extends Resource {
         super(jsonString);
     }
 
+    private Document(ObjectNode objectNode) {
+        super(objectNode);
+    }
+
     static Document FromObject(Object document, ObjectMapper objectMapper) {
         Document typedDocument;
         if (document instanceof Document) {
             typedDocument = (Document) document;
         } else {
-            try {
-                return new Document(objectMapper.writeValueAsString(document));
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Can't serialize the object into the json string", e);
-            }
+            return new Document(objectMapper.valueToTree(document));
         }
         return typedDocument;
     }
