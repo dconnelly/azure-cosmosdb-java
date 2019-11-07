@@ -54,7 +54,7 @@ public final class ResourceResponse<T extends Resource> {
         this.resource = this.response.getResource(this.cls);
     }
 
-    /**
+    /*
      * Max Quota.
      *
      * @return the database quota.

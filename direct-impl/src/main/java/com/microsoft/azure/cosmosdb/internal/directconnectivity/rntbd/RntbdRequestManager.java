@@ -27,37 +27,11 @@ import com.microsoft.azure.cosmosdb.BridgeInternal;
 import com.microsoft.azure.cosmosdb.DocumentClientException;
 import com.microsoft.azure.cosmosdb.Error;
 import com.microsoft.azure.cosmosdb.internal.InternalServerErrorException;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.ConflictException;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.ForbiddenException;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.GoneException;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.LockedException;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.MethodNotAllowedException;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.PartitionKeyRangeGoneException;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.PreconditionFailedException;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.RequestEntityTooLargeException;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.RequestRateTooLargeException;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.RequestTimeoutException;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.RetryWithException;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.ServiceUnavailableException;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.StoreResponse;
-import com.microsoft.azure.cosmosdb.internal.directconnectivity.UnauthorizedException;
-import com.microsoft.azure.cosmosdb.rx.internal.BadRequestException;
-import com.microsoft.azure.cosmosdb.rx.internal.InvalidPartitionException;
-import com.microsoft.azure.cosmosdb.rx.internal.NotFoundException;
-import com.microsoft.azure.cosmosdb.rx.internal.PartitionIsMigratingException;
-import com.microsoft.azure.cosmosdb.rx.internal.PartitionKeyRangeIsSplittingException;
+import com.microsoft.azure.cosmosdb.internal.ResourceType;
+import com.microsoft.azure.cosmosdb.internal.directconnectivity.*;
+import com.microsoft.azure.cosmosdb.rx.internal.*;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelException;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandler;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelOutboundHandler;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.CoalescingBufferQueue;
-import io.netty.channel.EventLoop;
+import io.netty.channel.*;
 import io.netty.channel.pool.ChannelHealthChecker;
 import io.netty.handler.codec.CorruptedFrameException;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -722,8 +696,10 @@ public final class RntbdRequestManager implements ChannelHandler, ChannelInbound
         final UUID activityId = response.getActivityId();
 
         if (HttpResponseStatus.OK.code() <= status.code() && status.code() < HttpResponseStatus.MULTIPLE_CHOICES.code()) {
-
-            final StoreResponse storeResponse = response.toStoreResponse(this.contextFuture.getNow(null));
+            final StoreResponse storeResponse = response.toStoreResponse(
+                    this.contextFuture.getNow(null),
+                    isJsonResource(pendingRequest.args().serviceRequest().getResourceType())
+            );
             pendingRequest.complete(storeResponse);
 
         } else {
@@ -838,6 +814,16 @@ public final class RntbdRequestManager implements ChannelHandler, ChannelInbound
             }
 
             pendingRequest.completeExceptionally(cause);
+        }
+    }
+
+    // TODO Enumerate all JSON resource types
+    private static boolean isJsonResource(ResourceType type) {
+        switch (type) {
+            case Document:
+                return true;
+            default:
+                return false;
         }
     }
 

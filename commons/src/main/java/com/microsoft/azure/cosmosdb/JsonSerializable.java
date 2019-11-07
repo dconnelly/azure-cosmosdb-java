@@ -83,7 +83,7 @@ public class JsonSerializable {
      *
      * @param objectNode the {@link ObjectNode} that represent the {@link JsonSerializable}
      */
-    JsonSerializable(ObjectNode objectNode) {
+    protected JsonSerializable(ObjectNode objectNode) {
         this.propertyBag = objectNode;
     }
 

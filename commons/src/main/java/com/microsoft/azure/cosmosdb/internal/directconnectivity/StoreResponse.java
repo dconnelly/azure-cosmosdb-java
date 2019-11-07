@@ -23,6 +23,7 @@
 
 package com.microsoft.azure.cosmosdb.internal.directconnectivity;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.cosmosdb.ClientSideRequestStatistics;
 import com.microsoft.azure.cosmosdb.internal.HttpConstants;
 import org.apache.commons.lang3.StringUtils;
@@ -43,22 +44,29 @@ public class StoreResponse {
     final private String[] responseHeaderValues;
     final private InputStream httpEntityStream;
     final private String content;
+    final private ObjectNode objectNode;
 
     private ClientSideRequestStatistics clientSideRequestStatistics;
 
     public StoreResponse(int status, List<Entry<String, String>> headerEntries, InputStream inputStream) {
-        this(status, headerEntries, null, inputStream);
+        this(status, headerEntries, null, inputStream, null);
     }
 
     public StoreResponse(int status, List<Entry<String, String>> headerEntries, String content) {
-        this(status, headerEntries, content, null);
+        this(status, headerEntries, content, null, null);
+    }
+
+    // Used when we know response content type is JSON (e.g. Document resource)
+    public StoreResponse(int status, List<Entry<String, String>> headerEntries, ObjectNode objectNode) {
+        this(status, headerEntries, null, null, objectNode);
     }
 
     private StoreResponse(
             int status,
             List<Entry<String, String>> headerEntries, 
             String content,
-            InputStream inputStream) {
+            InputStream inputStream,
+            ObjectNode objectNode) {
         responseHeaderNames = new String[headerEntries.size()];
         responseHeaderValues = new String[headerEntries.size()];
 
@@ -74,6 +82,7 @@ public class StoreResponse {
 
         this.content = content;
         this.httpEntityStream = inputStream;
+        this.objectNode = objectNode;
     }
 
     public int getStatus() {
@@ -88,8 +97,14 @@ public class StoreResponse {
         return responseHeaderValues;
     }
 
+    // Response body string for resources when getResponseObjectNode() is null
     public String getResponseBody() {
         return this.content;
+    }
+
+    // Returns ObjectNode directly when we know response content type is JSON
+    public ObjectNode getResponseObjectNode() {
+        return objectNode;
     }
 
     public InputStream getResponseStream() {

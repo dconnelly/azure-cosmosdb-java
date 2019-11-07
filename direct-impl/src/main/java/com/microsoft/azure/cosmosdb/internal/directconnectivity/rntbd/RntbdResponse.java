@@ -28,18 +28,27 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.google.common.base.Strings;
+import com.microsoft.azure.cosmosdb.internal.Utils;
 import com.microsoft.azure.cosmosdb.internal.directconnectivity.StoreResponse;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.CorruptedFrameException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.ReferenceCounted;
 import io.netty.util.ResourceLeakDetector;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
@@ -250,16 +259,36 @@ public final class RntbdResponse implements ReferenceCounted {
         return this;
     }
 
-    StoreResponse toStoreResponse(final RntbdContext context) {
-
+    StoreResponse toStoreResponse(final RntbdContext context, final boolean json) {
         checkNotNull(context, "context");
         final int length = this.content.readableBytes();
 
-        return new StoreResponse(
-            this.getStatus().code(),
-            this.headers.asList(context, this.getActivityId()),
-            length == 0 ? null : this.content.readCharSequence(length, StandardCharsets.UTF_8).toString()
-        );
+        if (json) {
+            return new StoreResponse(
+                    this.getStatus().code(),
+                    this.headers.asList(context, this.getActivityId()),
+                    length == 0 ? null : readJson(content)
+            );
+        } else {
+            return new StoreResponse(
+                    this.getStatus().code(),
+                    this.headers.asList(context, this.getActivityId()),
+                    length == 0 ? null : this.content.readCharSequence(length, StandardCharsets.UTF_8).toString()
+            );
+        }
+    }
+
+    private static ObjectNode readJson(ByteBuf in) {
+        JsonNode node;
+        try (InputStream is = new ByteBufInputStream(in)) {
+            node = Utils.getSimpleObjectMapper().readTree(is);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Json parsing error", e);
+        }
+        if (!node.isObject()) {
+            throw new IllegalArgumentException("Invalid JSON node type (expected OBJECT node): " + node.getNodeType());
+        }
+        return (ObjectNode) node;
     }
 
     @Override

@@ -62,7 +62,7 @@ public class Document extends Resource {
         super(jsonString);
     }
 
-    private Document(ObjectNode objectNode) {
+    public Document(ObjectNode objectNode) {
         super(objectNode);
     }
 

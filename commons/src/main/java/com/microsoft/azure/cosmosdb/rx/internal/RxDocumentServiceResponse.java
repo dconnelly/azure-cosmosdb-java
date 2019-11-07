@@ -26,6 +26,7 @@ package com.microsoft.azure.cosmosdb.rx.internal;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.cosmosdb.Attachment;
 import com.microsoft.azure.cosmosdb.BridgeInternal;
 import com.microsoft.azure.cosmosdb.ClientSideRequestStatistics;
@@ -48,6 +49,8 @@ import com.microsoft.azure.cosmosdb.internal.Utils;
 import com.microsoft.azure.cosmosdb.internal.directconnectivity.Address;
 import com.microsoft.azure.cosmosdb.internal.directconnectivity.StoreResponse;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -126,19 +129,36 @@ public class RxDocumentServiceResponse {
         return this.storeResponse.getResponseBody();
     }
 
-    public <T extends Resource> T getResource(Class<T> c) {
-        String responseBody = this.getReponseBodyAsString();
-        if (StringUtils.isEmpty(responseBody))
-            return null;
+    public ObjectNode getResponseBodyAsObjectNode() {
+        return this.storeResponse.getResponseObjectNode();
+    }
 
-        T resource = null;
-        try {
-            resource =  c.getConstructor(String.class).newInstance(responseBody);
-        } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
-                | NoSuchMethodException | SecurityException e) {
-            throw new IllegalStateException("Failed to instantiate class object.", e);
+    public <T extends Resource> T getResource(Class<T> c) {
+        System.out.println("XXXX JSON Resource: " + c);
+        T resource;
+        // Response body ObjectNode may be available directly if we know that it's a JSON resource
+        ObjectNode objectNode = getResponseBodyAsObjectNode();
+        if (objectNode != null) {
+            try {
+                resource = c.getConstructor(ObjectNode.class).newInstance(objectNode);
+            } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+                    | NoSuchMethodException | SecurityException e) {
+                throw new IllegalStateException("Failed to instantiate class object.", e);
+            }
+        } else {
+            // Otherwise, assume response body is a string
+            String responseBody = this.getReponseBodyAsString();
+            if (StringUtils.isEmpty(responseBody)) {
+                return null;
+            }
+            try {
+                resource = c.getConstructor(String.class).newInstance(responseBody);
+            } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+                    | NoSuchMethodException | SecurityException e) {
+                throw new IllegalStateException("Failed to instantiate class object.", e);
+            }
         }
-        if(PathsHelper.isPublicResource(resource)) {
+        if (PathsHelper.isPublicResource(resource)) {
             BridgeInternal.setAltLink(resource, PathsHelper.generatePathForNameBased(resource, this.getOwnerFullName(),resource.getId()));
         }
 
