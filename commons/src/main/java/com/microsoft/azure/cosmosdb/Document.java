@@ -71,7 +71,12 @@ public class Document extends Resource {
         if (document instanceof Document) {
             typedDocument = (Document) document;
         } else {
-            return new Document(objectMapper.valueToTree(document));
+            try {
+                return new Document(objectMapper.valueToTree(document));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                        "Can't serialize object to JSON tree: " + e.getMessage(), e.getCause());
+            }
         }
         return typedDocument;
     }

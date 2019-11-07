@@ -86,9 +86,9 @@ public class SimpleSerializationTest extends TestSuiteBase {
 
         FailureValidator failureValidator = FailureValidator.builder().instanceOf(IllegalArgumentException.class)
                 .causeOfCauseInstanceOf(NotImplementedException.class)
-                .errorMessageContains("Can't serialize the object into the json string").build();
+                .errorMessageContains("Can't serialize object to JSON tree").build();
 
-        validateFailure(createObservable, failureValidator);
+            validateFailure(createObservable, failureValidator);
     }
 
     @BeforeClass(groups = {"simple"}, timeOut = SETUP_TIMEOUT)
