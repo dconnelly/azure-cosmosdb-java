@@ -55,7 +55,11 @@ public class Offer extends Resource {
     public Offer(String jsonString) {
         super(jsonString);
     }
-    
+
+    public Offer(ObjectNode objectNode) {
+        super(objectNode);
+    }
+
     /**
      * Gets the self-link of a resource to which the resource offer applies.
      *

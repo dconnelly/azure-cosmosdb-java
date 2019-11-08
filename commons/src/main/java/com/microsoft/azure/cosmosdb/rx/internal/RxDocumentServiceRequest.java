@@ -113,6 +113,13 @@ public class RxDocumentServiceRequest {
         }
     }
 
+    public boolean isJsonResponse() {
+        if (resourceType == ResourceType.StoredProcedure) {
+            return operationType != OperationType.ExecuteJavaScript;
+        }
+        return true;
+    }
+
     /**
      * @param operationType          the operation type.
      * @param resourceIdOrFullName   the request id or full name.

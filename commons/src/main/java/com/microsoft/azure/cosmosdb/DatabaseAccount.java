@@ -24,6 +24,7 @@
 package com.microsoft.azure.cosmosdb;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.cosmosdb.internal.Constants;
 import com.microsoft.azure.cosmosdb.internal.Utils;
 
@@ -60,6 +61,10 @@ public class DatabaseAccount extends Resource {
      */
     public DatabaseAccount(String jsonString) {
         super(jsonString);
+    }
+
+    public DatabaseAccount(ObjectNode objectNode) {
+        super(objectNode);
     }
 
     /**

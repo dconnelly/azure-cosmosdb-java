@@ -27,21 +27,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.microsoft.azure.cosmosdb.Attachment;
-import com.microsoft.azure.cosmosdb.BridgeInternal;
-import com.microsoft.azure.cosmosdb.ClientSideRequestStatistics;
-import com.microsoft.azure.cosmosdb.Conflict;
-import com.microsoft.azure.cosmosdb.Database;
-import com.microsoft.azure.cosmosdb.Document;
-import com.microsoft.azure.cosmosdb.DocumentCollection;
-import com.microsoft.azure.cosmosdb.Offer;
-import com.microsoft.azure.cosmosdb.PartitionKeyRange;
-import com.microsoft.azure.cosmosdb.Permission;
-import com.microsoft.azure.cosmosdb.Resource;
-import com.microsoft.azure.cosmosdb.StoredProcedure;
-import com.microsoft.azure.cosmosdb.Trigger;
-import com.microsoft.azure.cosmosdb.User;
-import com.microsoft.azure.cosmosdb.UserDefinedFunction;
+import com.microsoft.azure.cosmosdb.*;
 import com.microsoft.azure.cosmosdb.internal.Constants;
 import com.microsoft.azure.cosmosdb.internal.HttpConstants;
 import com.microsoft.azure.cosmosdb.internal.PathsHelper;
@@ -49,8 +35,6 @@ import com.microsoft.azure.cosmosdb.internal.Utils;
 import com.microsoft.azure.cosmosdb.internal.directconnectivity.Address;
 import com.microsoft.azure.cosmosdb.internal.directconnectivity.StoreResponse;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -129,15 +113,10 @@ public class RxDocumentServiceResponse {
         return this.storeResponse.getResponseBody();
     }
 
-    public ObjectNode getResponseBodyAsObjectNode() {
-        return this.storeResponse.getResponseObjectNode();
-    }
-
     public <T extends Resource> T getResource(Class<T> c) {
-        System.out.println("XXXX JSON Resource: " + c);
         T resource;
         // Response body ObjectNode may be available directly if we know that it's a JSON resource
-        ObjectNode objectNode = getResponseBodyAsObjectNode();
+        ObjectNode objectNode = storeResponse.getResponseObjectNode();
         if (objectNode != null) {
             try {
                 resource = c.getConstructor(ObjectNode.class).newInstance(objectNode);
@@ -147,7 +126,7 @@ public class RxDocumentServiceResponse {
             }
         } else {
             // Otherwise, assume response body is a string
-            String responseBody = this.getReponseBodyAsString();
+            String responseBody = storeResponse.getResponseBody();
             if (StringUtils.isEmpty(responseBody)) {
                 return null;
             }
@@ -165,15 +144,23 @@ public class RxDocumentServiceResponse {
         return resource;
     }
 
+    private JsonNode getBodyJsonNode() {
+        ObjectNode json = storeResponse.getResponseObjectNode();
+        if (json != null) {
+            return json;
+        }
+        String body = storeResponse.getResponseBody();
+        return body != null ? fromJson(body) : null;
+    }
+
     public <T extends Resource> List<T> getQueryResponse(Class<T> c) {
-        String responseBody = this.getReponseBodyAsString();
-        if (responseBody == null) {
-            return new ArrayList<T>();
+        JsonNode json = getBodyJsonNode();
+        if (json == null) {
+            return new ArrayList<>();
         }
 
-        JsonNode jobject = fromJson(responseBody);
         String resourceKey = RxDocumentServiceResponse.getResourceKey(c);
-        ArrayNode jTokenArray = (ArrayNode) jobject.get(resourceKey);
+        ArrayNode jTokenArray = (ArrayNode) json.get(resourceKey);
 
         // Aggregate queries may return a nested array
         ArrayNode innerArray;
@@ -181,26 +168,27 @@ public class RxDocumentServiceResponse {
             jTokenArray = innerArray;
         }
 
-        List<T> queryResults = new ArrayList<T>();
+        List<T> queryResults = new ArrayList<>();
 
         if (jTokenArray != null) {
-            for (int i = 0; i < jTokenArray.size(); ++i) {
-                JsonNode jToken = jTokenArray.get(i);
-                // Aggregate on single partition collection may return the aggregated value only
-                // In that case it needs to encapsulated in a special document
-                String resourceJson = jToken.isNumber() || jToken.isBoolean()
-                        ? String.format("{\"%s\": %s}", Constants.Properties.AGGREGATE, jToken.asText())
-                                : toJson(jToken);
-                        T resource = null;
-                        try {
-                            resource = c.getConstructor(String.class).newInstance(resourceJson);
-                        } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
-                                | InvocationTargetException | NoSuchMethodException | SecurityException e) {
-                            throw new IllegalStateException("Failed to instantiate class object.", e);
-                        }
-
-                        queryResults.add(resource);
-            }
+            jTokenArray.forEach(jToken -> {
+                // Aggregate on single partition collection may return the aggregated value only,
+                // in which case it needs to encapsulated in an object node.
+                ObjectNode resourceJson;
+                if (jToken.isNumber() || jToken.isBoolean()) {
+                    resourceJson = Utils.getSimpleObjectMapper().createObjectNode()
+                        .put(Constants.Properties.AGGREGATE, jToken.asText());
+                } else if (jToken.isObject()) {
+                    resourceJson = (ObjectNode) jToken;
+                } else {
+                    throw new IllegalStateException("Array element not an object node");
+                }
+                try {
+                    queryResults.add(c.getConstructor(ObjectNode.class).newInstance(resourceJson));
+                } catch (Exception e) {
+                    throw new IllegalStateException("Failed to instantiate class object", e);
+                }
+            });
         }
 
         return queryResults;
@@ -214,7 +202,7 @@ public class RxDocumentServiceResponse {
         }
     }
 
-    private static JsonNode fromJson(String json){
+    private static JsonNode fromJson(String json) {
         try {
             return Utils.getSimpleObjectMapper().readTree(json);
         } catch (IOException e) {

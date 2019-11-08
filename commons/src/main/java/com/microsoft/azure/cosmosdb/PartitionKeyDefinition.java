@@ -23,6 +23,7 @@
 
 package com.microsoft.azure.cosmosdb;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.cosmosdb.internal.Constants;
 import com.microsoft.azure.cosmosdb.rx.internal.Strings;
 
@@ -56,6 +57,10 @@ public final class PartitionKeyDefinition extends JsonSerializable {
      */
     public PartitionKeyDefinition(String jsonString) {
         super(jsonString);
+    }
+
+    public PartitionKeyDefinition(ObjectNode objectNode) {
+        super(objectNode);
     }
 
     /**

@@ -27,7 +27,6 @@ import com.microsoft.azure.cosmosdb.BridgeInternal;
 import com.microsoft.azure.cosmosdb.DocumentClientException;
 import com.microsoft.azure.cosmosdb.Error;
 import com.microsoft.azure.cosmosdb.internal.InternalServerErrorException;
-import com.microsoft.azure.cosmosdb.internal.ResourceType;
 import com.microsoft.azure.cosmosdb.internal.directconnectivity.*;
 import com.microsoft.azure.cosmosdb.rx.internal.*;
 import io.netty.buffer.ByteBuf;
@@ -698,8 +697,7 @@ public final class RntbdRequestManager implements ChannelHandler, ChannelInbound
         if (HttpResponseStatus.OK.code() <= status.code() && status.code() < HttpResponseStatus.MULTIPLE_CHOICES.code()) {
             final StoreResponse storeResponse = response.toStoreResponse(
                     this.contextFuture.getNow(null),
-                    isJsonResource(pendingRequest.args().serviceRequest().getResourceType())
-            );
+                    pendingRequest.args().serviceRequest().isJsonResponse());
             pendingRequest.complete(storeResponse);
 
         } else {
@@ -814,16 +812,6 @@ public final class RntbdRequestManager implements ChannelHandler, ChannelInbound
             }
 
             pendingRequest.completeExceptionally(cause);
-        }
-    }
-
-    // TODO Enumerate all JSON resource types
-    private static boolean isJsonResource(ResourceType type) {
-        switch (type) {
-            case Document:
-                return true;
-            default:
-                return false;
         }
     }
 

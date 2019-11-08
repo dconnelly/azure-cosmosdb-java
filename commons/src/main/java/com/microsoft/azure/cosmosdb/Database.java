@@ -23,6 +23,7 @@
 
 package com.microsoft.azure.cosmosdb;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringUtils;
 
 import com.microsoft.azure.cosmosdb.internal.Constants;
@@ -53,6 +54,9 @@ public final class Database extends Resource {
         super(jsonString);
     }
 
+    public Database(ObjectNode objectNode) {
+        super(objectNode);
+    }
     /**
      * Gets the self-link for collections in the database
      *

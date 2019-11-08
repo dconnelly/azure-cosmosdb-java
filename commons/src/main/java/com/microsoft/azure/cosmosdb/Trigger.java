@@ -23,8 +23,9 @@
 
 package com.microsoft.azure.cosmosdb;
 
-import org.apache.commons.text.WordUtils;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.cosmosdb.internal.Constants;
+import org.apache.commons.text.WordUtils;
 
 /**
  * Represents a trigger in the Azure Cosmos DB database service.
@@ -48,6 +49,10 @@ public class Trigger extends Resource {
      */
     public Trigger(String jsonString) {
         super(jsonString);
+    }
+
+    public Trigger(ObjectNode objectNode) {
+        super(objectNode);
     }
 
     /**

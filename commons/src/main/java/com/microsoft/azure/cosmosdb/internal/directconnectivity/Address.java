@@ -23,6 +23,7 @@
 
 package com.microsoft.azure.cosmosdb.internal.directconnectivity;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.cosmosdb.Resource;
 import com.microsoft.azure.cosmosdb.internal.Constants;
 
@@ -44,6 +45,10 @@ public class Address extends Resource {
      */
     public Address(String jsonString) {
         super(jsonString);
+    }
+
+    public Address(ObjectNode objectNode) {
+        super(objectNode);
     }
 
     public boolean IsPrimary() {

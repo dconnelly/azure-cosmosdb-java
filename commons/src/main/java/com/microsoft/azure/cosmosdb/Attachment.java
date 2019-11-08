@@ -23,6 +23,7 @@
 
 package com.microsoft.azure.cosmosdb;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.cosmosdb.internal.Constants;
 
 /**
@@ -47,6 +48,10 @@ public class Attachment extends Resource {
      */
     public Attachment(String source) {
         super(source);
+    }
+
+    public Attachment(ObjectNode objectNode) {
+        super(objectNode);
     }
 
     /**

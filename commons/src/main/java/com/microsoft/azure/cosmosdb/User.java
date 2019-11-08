@@ -23,6 +23,7 @@
 
 package com.microsoft.azure.cosmosdb;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.cosmosdb.internal.Constants;
 
 /**
@@ -44,6 +45,10 @@ public class User extends Resource {
      */
     public User(String jsonString) {
         super(jsonString);
+    }
+
+    public User(ObjectNode objectNode) {
+        super(objectNode);
     }
 
     /**

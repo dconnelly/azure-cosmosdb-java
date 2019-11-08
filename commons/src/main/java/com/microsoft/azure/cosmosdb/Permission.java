@@ -24,6 +24,7 @@
 package com.microsoft.azure.cosmosdb;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.text.WordUtils;
 
 import com.microsoft.azure.cosmosdb.internal.Constants;
@@ -46,6 +47,10 @@ public class Permission extends Resource {
      */
     public Permission(String jsonString) {
         super(jsonString);
+    }
+
+    public Permission(ObjectNode objectNode) {
+        super(objectNode);
     }
 
     /**

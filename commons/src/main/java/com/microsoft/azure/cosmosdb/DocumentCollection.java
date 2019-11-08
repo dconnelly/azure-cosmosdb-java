@@ -23,6 +23,7 @@
 
 package com.microsoft.azure.cosmosdb;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.cosmosdb.internal.Constants;
 import org.apache.commons.lang3.StringUtils;
 
@@ -55,6 +56,9 @@ public final class DocumentCollection extends Resource {
         super(jsonString);
     }
 
+    public DocumentCollection(ObjectNode objectNode) {
+        super(objectNode);
+    }
     /**
      * Gets the indexing policy.
      *
